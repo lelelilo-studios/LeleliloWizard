@@ -1,0 +1,12 @@
+{
+  "name": "Lelelilo Wizard",
+  "short_name": "Wizard",
+  "description": "A floating pillow wizard casting elemental spells in a moonlit garden.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#140f22",
+  "theme_color": "#140f22",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

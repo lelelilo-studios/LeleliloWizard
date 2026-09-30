@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#140f22">
+<meta name="description" content="Lelelilo Wizard: a floating pillow wizard casting elemental spells in a moonlit floating garden.">
+<title>Lelelilo Wizard</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="favicon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  :root { --night: #140f22; --cream: #ece0c7; --brass: #f2c46d; --dim: #a79fc0; }
+  html, body { margin: 0; height: 100%; background: var(--night); color: var(--cream); overflow: hidden; overscroll-behavior: none; }
+  body { font: 500 16px system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+  canvas#wizard { position: fixed; inset: 0; width: 100vw; height: 100dvh; display: block; touch-action: none; outline: none; }
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+    background: radial-gradient(ellipse 70% 55% at 50% 45%, #2a2142, var(--night) 75%); text-align: center; transition: opacity .6s ease; z-index: 2; }
+  .screen.gone { opacity: 0; pointer-events: none; }
+  .screen.hidden { display: none; }
+  h1 { margin: 0; font: 800 clamp(28px, 6vw, 56px)/1 Georgia, 'Times New Roman', serif; letter-spacing: .01em; text-shadow: 0 3px 0 #6b4a2e, 0 10px 30px rgba(0,0,0,.5); }
+  h1 span { color: var(--brass); }
+  p { margin: 0; max-width: 34em; line-height: 1.5; color: var(--dim); }
+  .bar { width: min(340px, 72vw); height: 6px; border-radius: 3px; background: rgba(236,224,199,.12); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--brass); border-radius: 3px; transition: width .2s ease; }
+  .status { font: 700 12px system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+  .pillow { width: 108px; height: 108px; animation: bob 2.8s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-8px) rotate(1.5deg); } }
+  .err { font: 500 13px ui-monospace, monospace; color: #ffb4b4; white-space: pre-wrap; max-width: min(90vw, 900px); max-height: 50vh; overflow: auto; text-align: left; padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,.3); }
+  a { color: var(--cream); }
+  @media (prefers-reduced-motion: reduce) { .pillow { animation: none; } }
+</style>
+</head>
+<body>
+<canvas id="wizard" tabindex="0" aria-label="Lelelilo Wizard"></canvas>
+
+<div class="screen" id="loading" role="status" aria-live="polite">
+  <svg class="pillow" viewBox="0 0 120 120" aria-hidden="true">
+    <ellipse cx="60" cy="114" rx="30" ry="4" fill="rgba(0,0,0,.35)"/>
+    <path d="M38 36 Q60 -6 82 36Z" fill="#1c2150"/><circle cx="76" cy="12" r="3.4" fill="#f2c46d"/>
+    <path d="M14,36 Q60,48 106,36 Q96,70 104,104 Q60,114 16,104 Q24,70 14,36Z" fill="#ece0c7" stroke="#2a1c30" stroke-width="3"/>
+    <rect x="30" y="33" width="60" height="7" rx="3.5" fill="#f2c46d"/>
+    <ellipse cx="46" cy="68" rx="5" ry="6.5" fill="#1d1310"/><ellipse cx="74" cy="68" rx="5" ry="6.5" fill="#1d1310"/>
+    <circle cx="44.5" cy="65.5" r="1.8" fill="#fff"/><circle cx="72.5" cy="65.5" r="1.8" fill="#fff"/>
+    <path d="M53,78 Q60,83 67,78" fill="none" stroke="#1d1310" stroke-width="3" stroke-linecap="round"/>
+  </svg>
+  <h1>Lelelilo <span>Wizard</span></h1>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="status" id="status">Fluffing the pillow…</div>
+</div>
+
+<div class="screen hidden" id="unsupported">
+  <h1>No magic here yet</h1>
+  <p>Lelelilo Wizard needs <b>WebGPU</b>, which this browser doesn't offer. On a phone, use <b>Chrome</b> on Android
+    or <b>Safari 26+</b> on iPhone.</p>
+  <p id="why" style="font-size:13px"></p>
+</div>
+
+<div class="screen hidden" id="failed">
+  <h1>The spell fizzled</h1>
+  <p>Something went wrong while starting the game. Reloading usually helps.</p>
+  <div class="err" id="errtext"></div>
+</div>
+
+<script type="module">
+  const BUILD = '0687d01';
+  window.__wizard_build = BUILD;
+  // The screen's safe area (notches, rounded corners, the home bar) in CSS pixels, for the game's interface
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;inset:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+  document.body.appendChild(probe);
+  const measureInsets = () => { const s = getComputedStyle(probe); window.__wizard_insets = [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft].map(v => parseFloat(v) || 0); };
+  measureInsets(); addEventListener('resize', measureInsets);
+  // On a phone, the first tap goes full screen and holds the screen in landscape (where the browser allows it)
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  const immerse = () => {
+    const el = document.documentElement;
+    if (!coarse || document.fullscreenElement || !el.requestFullscreen) return;
+    el.requestFullscreen({ navigationUI: 'hide' }).then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+  };
+  addEventListener('pointerup', immerse, { capture: true });
+  const $ = id => document.getElementById(id);
+  const show = id => { for (const s of ['loading', 'unsupported', 'failed']) $(s).classList.toggle('hidden', s !== id); };
+  const setProgress = k => { $('bar').style.width = `${Math.max(0, Math.min(1, k)) * 100}%`; };
+  const fail = e => { console.error(e); $('errtext').textContent = String(e && e.message || e); show('failed'); };
+
+  async function hasWebGPU() {
+    if (!navigator.gpu) return 'This browser has no WebGPU.';
+    try { const a = await navigator.gpu.requestAdapter(); return a ? null : 'WebGPU is present but found no usable graphics adapter.'; }
+    catch (e) { return 'WebGPU could not start: ' + e.message; }
+  }
+
+  // Downloads with progress. Pages may compress the file, so Content-Length (the compressed size) is only a hint:
+  // progress runs against `expect` bytes of what arrives.
+  async function download(url, expect, onBytes) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Could not download ${url} (${res.status})`);
+    const reader = res.body.getReader(), parts = [];
+    let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read(); if (done) break;
+      parts.push(value); got += value.length; onBytes(Math.min(1, got / expect));
+    }
+    return new Blob(parts);
+  }
+
+  (async () => {
+    const why = await hasWebGPU();
+    if (why) { $('why').textContent = why; show('unsupported'); return; }
+    try {
+      addEventListener('wizard-error', e => fail(e.detail));
+      addEventListener('wizard-ready', () => {
+        setProgress(1); $('status').textContent = 'Ready'; setTimeout(() => $('loading').classList.add('gone'), 200); $('wizard').focus();
+      }, { once: true });
+      const wasmBytes = +('1387237'.replace(/\D/g, '')) || 6e6;
+      const [{ default: init }, wasm] = await Promise.all([
+        import(`./pkg/wizard.js?v=${BUILD}`),
+        download(`./pkg/wizard_bg.wasm?v=${BUILD}`, wasmBytes, k => setProgress(k * 0.9)),
+      ]);
+      $('status').textContent = 'Casting…';
+      await init({ module_or_path: new Response(wasm, { headers: { 'Content-Type': 'application/wasm' } }) });
+    } catch (e) { fail(e); }
+  })();
+</script>
+</body>
+</html>
