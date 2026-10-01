@@ -84,7 +84,7 @@
 </div>
 
 <script type="module">
-  const BUILD = 'f7563b7';
+  const BUILD = '20d9431';
   window.__wizard_build = BUILD;
   // The screen's safe area (notches, rounded corners, the home bar) in CSS pixels, for the game's interface
   const probe = document.createElement('div');
@@ -166,7 +166,7 @@
         $('loading').addEventListener('click', play);
       }, { once: true });
       // The game (WebAssembly) and its assets (the pack) download side by side, under one progress bar
-      const wasmBytes = +('1924619'.replace(/\D/g, '')) || 6e6, packBytes = +('3962093'.replace(/\D/g, '')) || 4e6;
+      const wasmBytes = +('1936389'.replace(/\D/g, '')) || 6e6, packBytes = +('3962093'.replace(/\D/g, '')) || 4e6;
       const got = { wasm: 0, pack: 0 };
       const progress = () => setProgress((got.wasm * wasmBytes + got.pack * packBytes) / (wasmBytes + packBytes) * 0.92);
       // The pack is gzipped; Pages may send it as it is or already unpacked: unpack it here only if it's still gzip
