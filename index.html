@@ -84,7 +84,7 @@
 </div>
 
 <script type="module">
-  const BUILD = 'b274e6e';
+  const BUILD = '77b990f';
   window.__wizard_build = BUILD;
   // The screen's safe area (notches, rounded corners, the home bar) in CSS pixels, for the game's interface
   const probe = document.createElement('div');
@@ -166,11 +166,11 @@
         $('loading').addEventListener('click', play);
       }, { once: true });
       // The game (WebAssembly) and its assets (the pack) download side by side, under one progress bar
-      const wasmBytes = +('1901021'.replace(/\D/g, '')) || 6e6, packBytes = +('3962938'.replace(/\D/g, '')) || 4e6;
+      const wasmBytes = +('1931051'.replace(/\D/g, '')) || 6e6, packBytes = +('3962093'.replace(/\D/g, '')) || 4e6;
       const got = { wasm: 0, pack: 0 };
       const progress = () => setProgress((got.wasm * wasmBytes + got.pack * packBytes) / (wasmBytes + packBytes) * 0.92);
       // The pack is gzipped; Pages may send it as it is or already unpacked: unpack it here only if it's still gzip
-      window.__wizard_pack = download(`./pack-0a38a68f.bin.gz`, packBytes, k => { got.pack = k; progress(); }).then(async blob => {
+      window.__wizard_pack = download(`./pack-ae5b3616.bin.gz`, packBytes, k => { got.pack = k; progress(); }).then(async blob => {
         let bytes = new Uint8Array(await blob.arrayBuffer());
         if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
           bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
