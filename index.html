@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#140f22">
 <meta name="description" content="Lelelilo Wizard: a floating pillow wizard casting elemental spells in a moonlit floating garden.">
+<meta name="author" content="lelelilo.com">
 <title>Lelelilo Wizard</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
@@ -40,6 +41,9 @@
   .play:active { transform: translateY(2px) scale(.98); box-shadow: 0 2px 0 #8a5a2b, 0 8px 20px rgba(0,0,0,.45); animation: none; }
   @keyframes pulse { 50% { transform: scale(1.05); } }
   .note { font: 600 13px system-ui, sans-serif; color: var(--dim); max-width: 30em; }
+  .studio { position: absolute; left: 0; right: 0; bottom: max(12px, env(safe-area-inset-bottom)); margin: auto; width: max-content; padding: 6px 12px;
+    font: 600 13px system-ui, sans-serif; color: var(--dim); text-decoration: none; }
+  .studio b { color: var(--brass); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
   @media (max-height: 400px) { .pillow { width: 72px; height: 72px; } .screen { gap: 10px; } }
   @media (prefers-reduced-motion: reduce) { .pillow, .play { animation: none; } }
 </style>
@@ -62,12 +66,14 @@
   <div class="status" id="status">Fluffing the pillow…</div>
   <button class="play" id="play" type="button" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2.5 L17 10 L4 17.5Z" fill="currentColor"/></svg>Tap to play</button>
   <div class="note" id="note" hidden></div>
+  <a class="studio" href="https://lelelilo.com/?ref=lelelilo-wizard" target="_blank" rel="noopener">A Lelelilo-Studios game · <b>lelelilo.com</b></a>
 </div>
 
 <div class="screen dim" id="paused" hidden>
   <h1>Paused</h1>
   <button class="play" id="resume" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 2.5 L17 10 L4 17.5Z" fill="currentColor"/></svg>Continue</button>
   <div class="note">The garden plays in full screen.</div>
+  <a class="studio" href="https://lelelilo.com/?ref=lelelilo-wizard" target="_blank" rel="noopener">A Lelelilo-Studios game · <b>lelelilo.com</b></a>
 </div>
 
 <div class="screen hidden" id="unsupported">
@@ -83,8 +89,19 @@
   <div class="err" id="errtext"></div>
 </div>
 
+<!-- The studio intro (its rules: ~/Projects/games-intro-logo/INTEGRATE.md): at every launch, over the loading screen;
+     the game waits, held, until it's done ("Tap to play" is behind it) -->
+<script src="lelelilo-intro/lelelilo-intro.js"></script>
+<script>
+  window.__wizard_intro = true;
+  LeleliloIntro.play({ base: 'lelelilo-intro/' }).then(() => {
+    window.__wizard_intro = false;
+    window.dispatchEvent(new Event('wizard-intro-done'));
+  });
+</script>
+
 <script type="module">
-  const BUILD = 'a2d4c74';
+  const BUILD = '174c9fb';
   window.__wizard_build = BUILD;
   // The screen's safe area (notches, rounded corners, the home bar) in CSS pixels, for the game's interface
   const probe = document.createElement('div');
@@ -109,7 +126,11 @@
   const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
   const isFull = () => standalone || !!(document.fullscreenElement || document.webkitFullscreenElement);
   const note = text => { $('note').textContent = text; $('note').hidden = !text; };
-  window.__wizard_paused = gated;
+  // (held while the studio intro plays too: without the gate the game starts as it ends)
+  window.__wizard_paused = gated || window.__wizard_intro;
+  if (!gated) addEventListener('wizard-intro-done', () => { window.__wizard_paused = false; }, { once: true });
+  // (the studio's link opens its site: not a tap on the screen behind it)
+  for (const a of document.querySelectorAll('a.studio')) a.addEventListener('click', e => e.stopPropagation());
   let playing = false, refusals = 0;
   async function play() {
     if (canFull && !isFull()) {
@@ -166,7 +187,7 @@
         $('loading').addEventListener('click', play);
       }, { once: true });
       // The game (WebAssembly) and its assets (the pack) download side by side, under one progress bar
-      const wasmBytes = +('1951040'.replace(/\D/g, '')) || 6e6, packBytes = +('3961756'.replace(/\D/g, '')) || 4e6;
+      const wasmBytes = +('1968345'.replace(/\D/g, '')) || 6e6, packBytes = +('3961756'.replace(/\D/g, '')) || 4e6;
       const got = { wasm: 0, pack: 0 };
       const progress = () => setProgress((got.wasm * wasmBytes + got.pack * packBytes) / (wasmBytes + packBytes) * 0.92);
       // The pack is gzipped; Pages may send it as it is or already unpacked: unpack it here only if it's still gzip
